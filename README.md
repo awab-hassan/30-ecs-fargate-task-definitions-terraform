@@ -1,4 +1,4 @@
-# Production — ECS Fargate Task Definitions (stage)
+# ECS Fargate Task Definitions (stage)
 
 Terraform fragment defining the two **ECS Fargate task definitions** for the Production staging stack: a lightweight **backend** task (`512 MB / 0.25 vCPU`, port 8000) and a heavier **frontend** task (`2048 MB / 1 vCPU`, port 3000). Both share the same execution role and are parameterised on container image tags so CI can swap images without editing Terraform.
 
