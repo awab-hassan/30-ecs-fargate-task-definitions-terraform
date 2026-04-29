@@ -1,28 +1,56 @@
-# ECS Fargate Task Definitions (stage)
+# ecs-fargate-task-definitions-terraform
 
-Terraform fragment defining the two **ECS Fargate task definitions** for the Production staging stack: a lightweight **backend** task (`512 MB / 0.25 vCPU`, port 8000) and a heavier **frontend** task (`2048 MB / 1 vCPU`, port 3000). Both share the same execution role and are parameterised on container image tags so CI can swap images without editing Terraform.
+Terraform module defining two ECS Fargate task definitions for a staging environment: a lightweight backend task and a heavier frontend task. Container image tags are passed as variables so CI can update images without editing Terraform.
 
-## Highlights
+This module covers task definitions only. The ECS cluster, service, ALB, target groups, and IAM execution role are expected to exist already and are referenced by the task definitions.
 
-- **Two separately sized tasks** — backend stays cheap; frontend gets 4× the memory and 4× the CPU because SSR/Node builds are the hot path.
-- **Image tags externalised** — `var.backend_image` / `var.frontend_image` get set from the CI pipeline (CodePipeline + ECR push).
-- **awsvpc networking** — each task gets its own ENI, enabling security-group-per-service and ALB target-group attach.
+## Task Definitions
 
-## Tech stack
+| Task | Memory | CPU | Container Port |
+|---|---|---|---|
+| backend | 512 MB | 0.25 vCPU | 8000 |
+| frontend | 2048 MB | 1 vCPU | 3000 |
 
-- Terraform + AWS provider
-- AWS ECS Fargate, IAM execution role, ECR (images), ALB (upstream)
+Both tasks use the `awsvpc` network mode, giving each task its own ENI and enabling per-service security groups and direct ALB target group attachment.
 
-## Expected variables
+## Inputs
 
-```hcl
-variable "backend_image"  {}   # ECR URI, e.g. <acct>.dkr.ecr.<region>.amazonaws.com/Production-backend:<tag>
-variable "frontend_image" {}   # same pattern for frontend
+| Variable | Purpose |
+|---|---|
+| `backend_image` | Backend container image, e.g. `<acct>.dkr.ecr.<region>.amazonaws.com/<repo>:<tag>` |
+| `frontend_image` | Frontend container image (same URI pattern) |
+
+The module references an existing `aws_iam_role.ecs_task_execution_role` with the AWS-managed `AmazonECSTaskExecutionRolePolicy` attached.
+
+## Stack
+
+Terraform · AWS ECS Fargate · ECR · IAM · awsvpc networking
+
+## Repository Layout
+
+```
+ecs-fargate-task-definitions-terraform/
+├── main.tf
+├── variables.tf
+├── .gitignore
+└── README.md
 ```
 
-Plus an `aws_iam_role.ecs_task_execution_role` (standard `AmazonECSTaskExecutionRolePolicy`) referenced by `execution_role_arn`.
+## Deployment
+
+CI typically supplies image URIs from the most recent ECR push:
+
+```bash
+terraform init
+terraform plan \
+  -var="backend_image=<acct>.dkr.ecr.<region>.amazonaws.com/backend:<tag>" \
+  -var="frontend_image=<acct>.dkr.ecr.<region>.amazonaws.com/frontend:<tag>"
+terraform apply
+```
 
 ## Notes
 
-- Staging-only shape; a prod equivalent would typically bump memory/cpu further and add a `task_role_arn` for app-level AWS calls.
-- Demonstrates: Fargate sizing per workload, image-tag parameterisation for CI-driven deploys, awsvpc networking choice.
+- **This module defines task definitions only.** It does not create the ECS cluster, service, ALB, target groups, or the execution IAM role. Those are provisioned separately and referenced as data sources or pre-existing resources.
+- **No `task_role_arn`.** These tasks have no app-level AWS API permissions. Add a `task_role_arn` if the application needs to call AWS services directly (e.g. S3, DynamoDB, Secrets Manager).
+- **Sizing is staging-tier.** A production equivalent should be tested against expected load and adjusted. Fargate billing is per-second based on the configured CPU and memory.
+- **No log driver shown.** Verify the container definitions configure `logConfiguration` with `awslogs` to stream container output to CloudWatch.
