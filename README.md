@@ -1,4 +1,4 @@
-# ecs-fargate-task-definitions-terraform
+# Project # 30 - ecs-fargate-task-definitions-terraform
 
 Terraform module defining two ECS Fargate task definitions for a staging environment: a lightweight backend task and a heavier frontend task. Container image tags are passed as variables so CI can update images without editing Terraform.
 
