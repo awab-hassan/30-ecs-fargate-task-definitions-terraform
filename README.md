@@ -26,16 +26,6 @@ The module references an existing `aws_iam_role.ecs_task_execution_role` with th
 
 Terraform · AWS ECS Fargate · ECR · IAM · awsvpc networking
 
-## Repository Layout
-
-```
-ecs-fargate-task-definitions-terraform/
-├── main.tf
-├── variables.tf
-├── .gitignore
-└── README.md
-```
-
 ## Deployment
 
 CI typically supplies image URIs from the most recent ECR push:
