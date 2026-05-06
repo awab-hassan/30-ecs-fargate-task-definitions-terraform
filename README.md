@@ -4,6 +4,10 @@ Terraform module defining two ECS Fargate task definitions for a staging environ
 
 This module covers task definitions only. The ECS cluster, service, ALB, target groups, and IAM execution role are expected to exist already and are referenced by the task definitions.
 
+## Architecture
+
+![Architecture Diagram](./architecture.png)
+
 ## Task Definitions
 
 | Task | Memory | CPU | Container Port |
